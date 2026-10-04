@@ -21,6 +21,7 @@ export default function App(){
   const [risk,setRisk] = useState('all');
   const [busy,setBusy] = useState(false);
   const [online,setOnline] = useState(false);
+  const [systemStatus,setSystemStatus] = useState(null);
   const [lastAnalysis,setLastAnalysis] = useState('not run');
   const [selectedEvidenceId,setSelectedEvidenceId] = useState(null);
   const [toast,setToast] = useState('');
@@ -39,6 +40,7 @@ export default function App(){
         api.health(), api.summary(), api.alerts(), api.network(), api.evidence()
       ]);
       setOnline(health.status === 'ok');
+      setSystemStatus(health);
       setSummary(summaryData);
       setAlerts(alertData.items);
       setNetwork(networkData);
@@ -103,7 +105,7 @@ export default function App(){
             <SocialFeed posts={posts} query={query} risk={risk} onQuery={setQuery} onRisk={setRisk} onOpenEvidence={openEvidence}/>
             <Alerts alerts={alerts}/>
           </div>
-          <div className="dashboard-grid lower"><Narratives narratives={summary?.narratives}/><ProcessingStatus/></div>
+          <div className="dashboard-grid lower"><Narratives narratives={summary?.narratives}/><ProcessingStatus systemStatus={systemStatus} summary={summary}/></div>
         </section>}
 
         {view==='network' && <section className="view active">
