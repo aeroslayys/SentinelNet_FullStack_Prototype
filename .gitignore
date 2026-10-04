@@ -5,5 +5,10 @@ frontend/dist
 .env
 backend/.env
 frontend/.env
+ml-service/.env
+ml-service/.venv
+.venv
+__pycache__/
+*.pyc
 *.log
 .DS_Store
