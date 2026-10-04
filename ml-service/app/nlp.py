@@ -36,13 +36,23 @@ def _sentiment_pipeline():
     if REQUESTED_ENGINE != "transformer":
         return None
     try:
-        from transformers import pipeline
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
+
+        tokenizer = AutoTokenizer.from_pretrained(
+            MODEL_NAME,
+            use_fast=False,
+            local_files_only=LOCAL_ONLY,
+        )
+        model = AutoModelForSequenceClassification.from_pretrained(
+            MODEL_NAME,
+            local_files_only=LOCAL_ONLY,
+        )
+
         return pipeline(
             "sentiment-analysis",
-            model=MODEL_NAME,
-            tokenizer=MODEL_NAME,
+            model=model,
+            tokenizer=tokenizer,
             top_k=None,
-            local_files_only=LOCAL_ONLY,
         )
     except Exception as exc:
         _MODEL_ERROR = f"{type(exc).__name__}: {exc}"
