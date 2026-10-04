@@ -190,6 +190,42 @@ export async function injectDemoEvent() {
   return { ...result, post: toClientPost(result.post) };
 }
 
+export async function createRawPost(input = {}) {
+  const text = String(input.text || '').trim();
+  const handle = String(input.handle || '').trim();
+
+  if (!text) {
+    const error = new Error('Post text is required.');
+    error.status = 400;
+    throw error;
+  }
+
+  if (!handle) {
+    const error = new Error('Post handle is required.');
+    error.status = 400;
+    throw error;
+  }
+
+  const suffix = Date.now().toString().slice(-8);
+  const id = input.id ? String(input.id) : `P-${suffix}`;
+  const timestamp = input.timestamp
+    ? String(input.timestamp)
+    : new Date().toLocaleTimeString('en-GB', { hour12: false, timeZone: 'Asia/Kolkata' });
+
+  const result = await insertPost({
+    id,
+    handle,
+    text,
+    timestamp,
+    cluster: input.cluster ? String(input.cluster) : null,
+    evidence: Boolean(input.evidence),
+    source: input.source ? String(input.source) : 'manual-ingestion',
+    order: Number.isFinite(input.order) ? input.order : 0
+  });
+
+  return { ...result, post: toClientPost(result.post) };
+}
+
 export async function buildReport() {
   const posts = (await getAllPosts()).map(toClientPost);
   return {
