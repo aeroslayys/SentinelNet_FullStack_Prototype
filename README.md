@@ -22,6 +22,107 @@ A runnable MVP for **SentinelNet: Multi-Layer Social Media Intelligence & Networ
 
 ---
 
+## Current development milestone — MongoDB + NLP foundation
+
+The `feature/mongo-nlp-foundation` branch begins replacing pre-classified demo intelligence with a real processing pipeline.
+
+### What changed
+
+- Raw posts are now stored without hardcoded sentiment/risk/category values.
+- A repository layer supports either:
+  - `DATA_SOURCE=memory` for zero-setup development, or
+  - `DATA_SOURCE=mongodb` for persistent MongoDB storage.
+- `POST /api/posts` accepts new raw posts.
+- `POST /api/analyze` sends raw text to a separate FastAPI NLP service.
+- The NLP service performs multilingual sentiment inference using a configurable Hugging Face transformer baseline, plus language detection, urgency/manipulation/claim signals and narrative extraction.
+- The Express API combines NLP output with graph/bot signals to calculate a real runtime risk score.
+- Evidence records are created only after analysis and use real SHA-256 hashing.
+- The dashboard now reports whether the NLP service is using the transformer or a transparent heuristic fallback.
+
+### New architecture
+
+```text
+Raw post / demo event
+        ↓
+Express ingestion API
+        ↓
+MongoDB or memory repository
+        ↓
+FastAPI NLP service
+        ↓
+sentiment + language + urgency + narrative
+        ↓
+Express risk engine + graph signal
+        ↓
+persist analysis
+        ↓
+React dashboard / alerts / evidence
+```
+
+### Install the new services
+
+Node dependencies:
+
+```bash
+npm run install:all
+```
+
+Python NLP service:
+
+```bash
+cd ml-service
+python -m venv .venv
+```
+
+Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Linux/macOS:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Run the NLP service:
+
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+Then, from the project root, run the frontend and Express API:
+
+```bash
+npm run dev
+```
+
+Or, once the Python environment is active, run all three processes together:
+
+```bash
+npm run dev:full
+```
+
+### Optional MongoDB persistence
+
+The default is still zero-setup memory mode. To enable MongoDB, create `backend/.env`:
+
+```env
+DATA_SOURCE=mongodb
+MONGODB_URI=mongodb://127.0.0.1:27017/sentinelnet
+AUTO_SEED=true
+ML_SERVICE_URL=http://127.0.0.1:8000
+```
+
+Start MongoDB locally before starting the Express API.
+
+> The current transformer is a practical multilingual baseline, not yet the final domain-specific IndicBERT model. The service reports its actual engine mode so the UI never claims transformer inference when it has fallen back.
+
+---
+
 ## Project structure
 
 ```text
