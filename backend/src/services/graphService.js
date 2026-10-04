@@ -56,37 +56,47 @@ function relationForPosts(a, b) {
   const analysisA = analysisOf(a);
   const analysisB = analysisOf(b);
   const similarity = jaccard(tokenize(a.text), tokenize(b.text));
-  const narrativeMatch =
-    meaningfulNarrative(analysisA.narrative) &&
-    analysisA.narrative === analysisB.narrative;
+  const narrative = meaningfulNarrative(analysisA.narrative) ? analysisA.narrative : null;
+  const narrativeMatch = Boolean(narrative && narrative === analysisB.narrative);
   const deltaSeconds = timeDeltaSeconds(a.timestamp, b.timestamp);
   const synchronized = deltaSeconds !== null && deltaSeconds <= 120;
-  const urgencyA = clamp01(analysisA.urgency);
-  const urgencyB = clamp01(analysisB.urgency);
-  const bothUrgent = urgencyA >= 0.5 && urgencyB >= 0.5;
+  const coordinationWindow = deltaSeconds !== null && deltaSeconds <= 300;
+  const relatedWindow = deltaSeconds === null || deltaSeconds <= 900;
+
+  const urgency = Math.max(clamp01(analysisA.urgency), clamp01(analysisB.urgency));
+  const manipulation = Math.max(clamp01(analysisA.manipulation), clamp01(analysisB.manipulation));
+  const claimSignal = Math.max(clamp01(analysisA.claimSignal), clamp01(analysisB.claimSignal));
+  const threatCue = Math.max(urgency, manipulation, claimSignal);
+
+  // Verification/counter-signal narratives should be connected for context, but
+  // are not treated as suspicious coordination unless their text is near-duplicate.
+  const verificationNarrative = narrative === 'Verification response';
 
   const suspicious =
-    (narrativeMatch && synchronized && (similarity >= 0.12 || bothUrgent)) ||
-    (similarity >= 0.58 && synchronized);
+    (!verificationNarrative && narrativeMatch && coordinationWindow && (similarity >= 0.08 || threatCue >= 0.25)) ||
+    (similarity >= 0.45 && coordinationWindow);
 
   const related =
     suspicious ||
-    similarity >= 0.22 ||
-    (narrativeMatch && (deltaSeconds === null || deltaSeconds <= 900));
+    similarity >= 0.18 ||
+    (narrativeMatch && relatedWindow);
 
   if (!related) return null;
 
-  let weight = similarity * 0.45;
-  if (narrativeMatch) weight += 0.30;
-  if (synchronized) weight += 0.20;
-  if (bothUrgent) weight += 0.05;
+  let weight = similarity * 0.40;
+  if (narrativeMatch) weight += 0.35;
+  if (synchronized) weight += 0.15;
+  else if (coordinationWindow) weight += 0.08;
+  weight += threatCue * 0.10;
 
   return {
     suspicious,
     similarity: Number(similarity.toFixed(3)),
     narrativeMatch,
+    narrative,
     synchronized,
     deltaSeconds,
+    threatCue: Number(threatCue.toFixed(3)),
     weight: Number(Math.min(1, weight).toFixed(3))
   };
 }
