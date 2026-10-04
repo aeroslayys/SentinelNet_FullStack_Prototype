@@ -3,7 +3,7 @@ import { validatePostQuery } from '../middleware/validateQuery.js';
 import {
   listPosts, getSummary, getAlerts, getNetwork,
   getEvidenceRecords, verifyEvidence, injectDemoEvent, buildReport,
-  analyzeAllPosts, getSystemStatus
+  analyzeAllPosts, getSystemStatus, createRawPost
 } from '../services/intelligenceService.js';
 
 export const apiRouter = Router();
@@ -19,6 +19,15 @@ apiRouter.get('/health', async (_req, res, next) => {
 apiRouter.get('/posts', validatePostQuery, async (req, res, next) => {
   try {
     res.json({ items: await listPosts(req.query) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/posts', async (req, res, next) => {
+  try {
+    const result = await createRawPost(req.body);
+    res.status(result.created ? 201 : 200).json(result);
   } catch (error) {
     next(error);
   }
