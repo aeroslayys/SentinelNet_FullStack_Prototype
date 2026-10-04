@@ -13,16 +13,19 @@ export default function SocialFeed({ posts, query, risk, onQuery, onRisk, onOpen
         </div>
       </div>
       <div className="feed-list">
-        {posts.map(p => (
-          <article key={p.id} className="feed-item" onClick={()=>p.evidence && onOpenEvidence(p)}>
-            <div>
-              <div className="feed-top"><span className="handle">{p.handle}</span><span className="lang">{p.language}</span><span className="category">{p.category}</span></div>
-              <div className="feed-text">{p.text}</div>
-              <div className="feed-meta">{p.id} · {p.timestamp} · {p.sentiment} · {p.narrative}</div>
-            </div>
-            <div className={`risk-score ${riskClass(p.risk)}`}>{p.risk}</div>
-          </article>
-        ))}
+        {posts.map(p => {
+          const analyzed = p.analysisStatus === 'complete';
+          return (
+            <article key={p.id} className="feed-item" onClick={()=>p.evidence && onOpenEvidence(p)}>
+              <div>
+                <div className="feed-top"><span className="handle">{p.handle}</span><span className="lang">{p.language}</span><span className="category">{p.category}</span></div>
+                <div className="feed-text">{p.text}</div>
+                <div className="feed-meta">{p.id} · {p.timestamp} · {p.sentiment} · {p.narrative}</div>
+              </div>
+              <div className={`risk-score ${analyzed ? riskClass(p.risk) : ''}`}>{analyzed ? p.risk : '—'}</div>
+            </article>
+          );
+        })}
         {!posts.length && <div className="muted">No posts match this filter.</div>}
       </div>
     </section>

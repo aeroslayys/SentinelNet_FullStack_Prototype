@@ -1,10 +1,11 @@
 {
   "name": "sentinelnet-fullstack-prototype",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "scripts": {
     "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install",
     "dev": "concurrently -n API,WEB -c auto \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "dev:full": "concurrently -n NLP,API,WEB -c auto \"python -m uvicorn app.main:app --app-dir ml-service --reload --port 8000\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
     "start": "npm --prefix backend start",
     "build": "npm --prefix frontend run build"
   },

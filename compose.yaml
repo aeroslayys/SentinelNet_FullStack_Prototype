@@ -1,0 +1,105 @@
+services:
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-sentinelnet}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - ./data/mongodb:/data/db:Z
+    networks:
+      - sentinelnet-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --username \"$${MONGO_INITDB_ROOT_USERNAME}\" --password \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 })' >/dev/null 2>&1 || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  nlp:
+    build:
+      context: ./ml-service
+    restart: unless-stopped
+    environment:
+      NLP_ENGINE: transformer
+      SENTIMENT_MODEL: ${SENTIMENT_MODEL:-cardiffnlp/twitter-xlm-roberta-base-sentiment}
+      MODEL_LOCAL_FILES_ONLY: "false"
+      HF_HOME: /models/huggingface
+      HF_HUB_DISABLE_TELEMETRY: "1"
+    volumes:
+      - ./data/hf-cache:/models/huggingface:Z
+    expose:
+      - "8000"
+    networks:
+      - sentinelnet-internal
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=10); raise SystemExit(0 if r.status == 200 else 1)"
+        ]
+      interval: 15s
+      timeout: 15s
+      retries: 40
+      start_period: 180s
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      PORT: "5050"
+      CLIENT_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-240}
+      DATA_SOURCE: mongodb
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:-sentinelnet}:${MONGO_ROOT_PASSWORD}@mongo:27017/sentinelnet?authSource=admin
+      MONGODB_SERVER_SELECTION_TIMEOUT_MS: "10000"
+      AUTO_SEED: ${AUTO_SEED:-true}
+      ML_SERVICE_URL: http://nlp:8000
+      ML_REQUEST_TIMEOUT_MS: ${ML_REQUEST_TIMEOUT_MS:-120000}
+    expose:
+      - "5050"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      nlp:
+        condition: service_healthy
+    networks:
+      - sentinelnet-internal
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:5050/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - sentinelnet-internal
+
+networks:
+  sentinelnet-internal:
+    driver: bridge

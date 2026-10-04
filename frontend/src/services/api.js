@@ -15,6 +15,7 @@ async function request(path, options = {}) {
 export const api = {
   health: () => request('/health'),
   posts: (q = '', risk = 'all') => request(`/posts?q=${encodeURIComponent(q)}&risk=${encodeURIComponent(risk)}`),
+  createPost: (post) => request('/posts', { method: 'POST', body: JSON.stringify(post) }),
   summary: () => request('/summary'),
   alerts: () => request('/alerts'),
   network: () => request('/network'),
