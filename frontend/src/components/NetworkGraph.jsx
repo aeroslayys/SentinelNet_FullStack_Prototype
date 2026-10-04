@@ -37,7 +37,9 @@ export default function NetworkGraph({ network }) {
       .force('center', d3.forceCenter(width/2, height/2))
       .force('x', d3.forceX(width/2).strength(.055))
       .force('y', d3.forceY(height/2).strength(.075))
-      .force('collide', d3.forceCollide().radius(34));
+      .force('collide', d3.forceCollide()
+        .radius(d => 34 + Math.min(36, (d.label?.length || 0) * 1.8))
+        .iterations(2));
 
     const link = svg.append('g').selectAll('line').data(links).join('line')
       .attr('class', d => `graph-edge ${d.suspicious ? 'suspicious':''}`);
@@ -52,7 +54,12 @@ export default function NetworkGraph({ network }) {
 
     node.append('circle').attr('r', d => d.type === 'hub' ? 17 : d.type === 'bot' ? 13 : 11);
     node.filter(d=>d.type==='hub').append('circle').attr('r',24).attr('fill','none').attr('stroke','rgba(139,123,255,.18)').attr('stroke-width',1);
-    node.append('text').attr('y', d => (d.type === 'hub' ? 17 : d.type === 'bot' ? 13 : 11) + 18).text(d=>d.label);
+    node.append('text')
+      .attr('class','node-label')
+      .attr('x', d => d.index % 2 === 0 ? 10 : -10)
+      .attr('y', d => (d.type === 'hub' ? 17 : d.type === 'bot' ? 13 : 11) + 18)
+      .attr('text-anchor', d => d.index % 2 === 0 ? 'start' : 'end')
+      .text(d=>d.label);
 
     simulation.on('tick', () => {
       link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
