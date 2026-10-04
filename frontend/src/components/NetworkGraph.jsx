@@ -88,9 +88,9 @@ export default function NetworkGraph({ network }) {
     <aside className="panel inspector-panel">
       <div className="eyebrow">NODE INSPECTOR</div>
       <h2>{selectedNode?.label || 'Select an account'}</h2>
-      <p className="muted">{selectedNode ? (selectedNode.bot >= .65 ? 'Strong coordination/automation signal derived from the current analyzed dataset.' : selectedNode.type === 'hub' ? 'High network centrality in the current analyzed dataset.' : 'Account currently exhibits mostly human-like behavior in this dataset.') : 'Click any node to inspect coordination score, centrality, cluster and synchronized relationships.'}</p>
+      <p className="muted">{selectedNode ? (selectedNode.bot >= .65 ? 'Strong coordination/automation signal derived from the current analyzed dataset.' : selectedNode.type === 'hub' ? 'High network centrality in the current analyzed dataset.' : 'Account currently shows a lower coordination/automation signal in this dataset.') : 'Click any node to inspect coordination score, centrality, cluster and synchronized relationships.'}</p>
       <div className="inspector-grid">
-        <div><span>Bot / CIB score</span><strong>{selectedNode ? `${Math.round(selectedNode.bot*100)}%` : '—'}</strong></div>
+        <div><span>Coordination score</span><strong>{selectedNode ? `${Math.round(selectedNode.bot*100)}%` : '—'}</strong></div>
         <div><span>Centrality</span><strong>{selectedNode?.centrality?.toFixed(2) || '—'}</strong></div>
         <div><span>Cluster</span><strong>{selectedNode?.cluster || '—'}</strong></div>
         <div><span>Synced links</span><strong>{selectedNode?.synced ?? '—'}</strong></div>
