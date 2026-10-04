@@ -32,10 +32,12 @@ export default function NetworkGraph({ network }) {
     const localNodes = nodes.map(n => ({...n}));
     const links = edges.map(e => ({...e}));
     const simulation = d3.forceSimulation(localNodes)
-      .force('link', d3.forceLink(links).id(d => d.id).distance(d => d.suspicious ? 80 : 125).strength(.65))
-      .force('charge', d3.forceManyBody().strength(-320))
+      .force('link', d3.forceLink(links).id(d => d.id).distance(d => d.suspicious ? 72 : 105).strength(d => d.suspicious ? .9 : .55))
+      .force('charge', d3.forceManyBody().strength(-170))
       .force('center', d3.forceCenter(width/2, height/2))
-      .force('collide', d3.forceCollide().radius(42));
+      .force('x', d3.forceX(width/2).strength(.055))
+      .force('y', d3.forceY(height/2).strength(.075))
+      .force('collide', d3.forceCollide().radius(34));
 
     const link = svg.append('g').selectAll('line').data(links).join('line')
       .attr('class', d => `graph-edge ${d.suspicious ? 'suspicious':''}`);
@@ -69,6 +71,11 @@ export default function NetworkGraph({ network }) {
         <button className="btn tiny" onClick={()=>setSelected(null)}>Reset Selection</button>
       </div>
       {!nodes.length && <div className="muted">Run analysis first. SentinelNet will build this graph from the analyzed posts instead of loading a fixed demo network.</div>}
+      <div className="graph-stats">
+        <span>{network?.stats?.accounts ?? nodes.length} accounts</span>
+        <span>{network?.stats?.relationships ?? edges.length} relationships</span>
+        <span>{network?.stats?.suspiciousRelationships ?? edges.filter(e=>e.suspicious).length} suspicious links</span>
+      </div>
       <svg ref={svgRef} id="networkGraph" viewBox="0 0 900 560"/>
     </section>
     <aside className="panel inspector-panel">
