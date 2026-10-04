@@ -41,7 +41,9 @@ apiRouter.get('/alerts', async (_req, res, next) => {
   try { res.json({ items: await getAlerts() }); } catch (error) { next(error); }
 });
 
-apiRouter.get('/network', (_req, res) => res.json(getNetwork()));
+apiRouter.get('/network', async (_req, res, next) => {
+  try { res.json(await getNetwork()); } catch (error) { next(error); }
+});
 
 apiRouter.get('/evidence', async (_req, res, next) => {
   try { res.json({ items: await getEvidenceRecords() }); } catch (error) { next(error); }
