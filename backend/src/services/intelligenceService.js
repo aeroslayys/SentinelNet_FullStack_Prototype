@@ -1,4 +1,4 @@
-import { nodes, edges } from '../data/networkStore.js';
+import { buildNetwork } from './graphService.js';
 import {
   getAllPosts, findPostById, saveAnalysis, insertPost, toClientPost
 } from '../repositories/postRepository.js';
@@ -8,10 +8,6 @@ import { sha256 } from '../utils/hash.js';
 
 function sortByRisk(items) {
   return [...items].sort((a, b) => b.risk - a.risk);
-}
-
-function nodeForHandle(handle) {
-  return nodes.find((node) => node.label === handle);
 }
 
 export async function listPosts({ q = '', risk = 'all' } = {}) {
@@ -33,8 +29,13 @@ export async function getSummary() {
   const posts = (await getAllPosts()).map(toClientPost);
   const analyzed = posts.filter((post) => post.analysisStatus === 'complete');
   const highRiskPosts = analyzed.filter((p) => p.risk >= 75).length;
-  const suspectedBots = nodes.filter((n) => n.bot >= 0.8).length;
-  const suspiciousClusters = [...new Set(nodes.filter((n) => n.bot >= 0.8).map((n) => n.cluster))];
+  const network = buildNetwork(await getAllPosts());
+  const suspectedBots = network.nodes.filter((n) => n.bot >= 0.65).length;
+  const suspiciousClusters = [...new Set(
+    network.nodes
+      .filter((n) => n.bot >= 0.65 && n.cluster !== 'C-SOLO')
+      .map((n) => n.cluster)
+  )];
   const averageRisk = analyzed.length
     ? Math.round(analyzed.reduce((sum, p) => sum + p.risk, 0) / analyzed.length)
     : 0;
@@ -76,8 +77,8 @@ export async function getAlerts() {
     }));
 }
 
-export function getNetwork() {
-  return { nodes, edges };
+export async function getNetwork() {
+  return buildNetwork(await getAllPosts());
 }
 
 export function evidencePayload(post) {
@@ -141,11 +142,20 @@ export async function analyzeAllPosts() {
   const nlp = await analyzeBatch(rawPosts);
   const byId = new Map(nlp.items.map((item) => [item.id, item]));
 
+  // Build a temporary NLP-enriched graph before assigning the final risk score.
+  // This lets coordination emerge from the current batch instead of a fixed demo network.
+  const enrichedForGraph = rawPosts.map((post) => ({
+    ...post,
+    analysis: byId.get(post.id) || null
+  }));
+  const runtimeNetwork = buildNetwork(enrichedForGraph);
+  const nodeByHandle = new Map(runtimeNetwork.nodes.map((node) => [node.label, node]));
+
   for (const post of rawPosts) {
     const nlpResult = byId.get(post.id);
     if (!nlpResult) continue;
 
-    const graphSignal = graphSignalForNode(nodeForHandle(post.handle));
+    const graphSignal = graphSignalForNode(nodeByHandle.get(post.handle));
     const riskResult = calculateRisk(nlpResult, graphSignal);
     const category = classifyCategory(nlpResult, graphSignal, riskResult.risk);
 
@@ -155,6 +165,7 @@ export async function analyzeAllPosts() {
       risk: riskResult.risk,
       riskBreakdown: riskResult.components,
       graphSignal: Math.round(graphSignal * 100),
+      networkCluster: nodeByHandle.get(post.handle)?.cluster || 'C-SOLO',
       analyzedAt: new Date().toISOString()
     });
   }
