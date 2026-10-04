@@ -389,3 +389,18 @@ npm --version
 ```
 
 Use Node 20+ for this project.
+
+
+## Docker deployment
+
+The intended server-laptop deployment uses Docker Compose with:
+
+- Nginx + production React build
+- Express API
+- FastAPI NLP service
+- MongoDB persistence
+- persistent Hugging Face model cache
+
+Only the web port is published; API, NLP and MongoDB stay on the internal Docker network.
+
+See `docs/DOCKER_DEPLOYMENT.md` for setup and server deployment steps.
