@@ -2,42 +2,70 @@ import { Router } from 'express';
 import { validatePostQuery } from '../middleware/validateQuery.js';
 import {
   listPosts, getSummary, getAlerts, getNetwork,
-  getEvidenceRecords, verifyEvidence, injectDemoEvent, buildReport
+  getEvidenceRecords, verifyEvidence, injectDemoEvent, buildReport,
+  analyzeAllPosts, getSystemStatus
 } from '../services/intelligenceService.js';
 
 export const apiRouter = Router();
 
-apiRouter.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'sentinelnet-api', timestamp: new Date().toISOString() });
+apiRouter.get('/health', async (_req, res, next) => {
+  try {
+    res.json(await getSystemStatus());
+  } catch (error) {
+    next(error);
+  }
 });
 
-apiRouter.get('/posts', validatePostQuery, (req, res) => {
-  res.json({ items: listPosts(req.query) });
+apiRouter.get('/posts', validatePostQuery, async (req, res, next) => {
+  try {
+    res.json({ items: await listPosts(req.query) });
+  } catch (error) {
+    next(error);
+  }
 });
 
-apiRouter.get('/summary', (_req, res) => res.json(getSummary()));
-apiRouter.get('/alerts', (_req, res) => res.json({ items: getAlerts() }));
+apiRouter.get('/summary', async (_req, res, next) => {
+  try { res.json(await getSummary()); } catch (error) { next(error); }
+});
+
+apiRouter.get('/alerts', async (_req, res, next) => {
+  try { res.json({ items: await getAlerts() }); } catch (error) { next(error); }
+});
+
 apiRouter.get('/network', (_req, res) => res.json(getNetwork()));
-apiRouter.get('/evidence', (_req, res) => res.json({ items: getEvidenceRecords() }));
 
-apiRouter.post('/analyze', (_req, res) => {
-  res.json({
-    status: 'complete',
-    analyzedAt: new Date().toISOString(),
-    summary: getSummary(),
-    alerts: getAlerts()
-  });
+apiRouter.get('/evidence', async (_req, res, next) => {
+  try { res.json({ items: await getEvidenceRecords() }); } catch (error) { next(error); }
 });
 
-apiRouter.post('/demo-event', (_req, res) => {
-  const result = injectDemoEvent();
-  res.status(result.created ? 201 : 200).json(result);
+apiRouter.post('/analyze', async (_req, res, next) => {
+  try {
+    const result = await analyzeAllPosts();
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
 });
 
-apiRouter.post('/evidence/:id/verify', (req, res) => {
-  const result = verifyEvidence(req.params.id);
-  if (!result) return res.status(404).json({ error: 'Evidence record not found' });
-  res.json(result);
+apiRouter.post('/demo-event', async (_req, res, next) => {
+  try {
+    const result = await injectDemoEvent();
+    res.status(result.created ? 201 : 200).json(result);
+  } catch (error) {
+    next(error);
+  }
 });
 
-apiRouter.get('/report', (_req, res) => res.json(buildReport()));
+apiRouter.post('/evidence/:id/verify', async (req, res, next) => {
+  try {
+    const result = await verifyEvidence(req.params.id);
+    if (!result) return res.status(404).json({ error: 'Evidence record not found' });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.get('/report', async (_req, res, next) => {
+  try { res.json(await buildReport()); } catch (error) { next(error); }
+});
