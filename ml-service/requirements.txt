@@ -5,3 +5,4 @@ torch>=2.2.0
 langdetect==1.0.9
 pydantic==2.10.4
 protobuf>=5.28.0
+sentencepiece>=0.2.0
