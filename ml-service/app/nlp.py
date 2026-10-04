@@ -13,6 +13,7 @@ MODEL_NAME = os.getenv(
 )
 REQUESTED_ENGINE = os.getenv("NLP_ENGINE", "transformer").lower()
 LOCAL_ONLY = os.getenv("MODEL_LOCAL_FILES_ONLY", "false").lower() == "true"
+_MODEL_ERROR = None
 
 _URGENCY_TERMS = {
     "urgent", "breaking", "immediately", "now", "emergency", "alert",
@@ -30,6 +31,8 @@ _CLAIM_TERMS = {
 
 @lru_cache(maxsize=1)
 def _sentiment_pipeline():
+    global _MODEL_ERROR
+    _MODEL_ERROR = None
     if REQUESTED_ENGINE != "transformer":
         return None
     try:
@@ -41,7 +44,8 @@ def _sentiment_pipeline():
             top_k=None,
             local_files_only=LOCAL_ONLY,
         )
-    except Exception:
+    except Exception as exc:
+        _MODEL_ERROR = f"{type(exc).__name__}: {exc}"
         return None
 
 
@@ -57,6 +61,7 @@ def engine_status():
         "mode": "heuristic-fallback",
         "model": MODEL_NAME if REQUESTED_ENGINE == "transformer" else None,
         "fallback": REQUESTED_ENGINE == "transformer",
+        "error": _MODEL_ERROR,
     }
 
 
