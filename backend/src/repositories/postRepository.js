@@ -21,7 +21,7 @@ export function toClientPost(post) {
     handle: raw.handle,
     text: raw.text,
     timestamp: raw.timestamp,
-    cluster: raw.cluster,
+    cluster: analysis?.networkCluster || raw.cluster || 'C-SOLO',
     evidence: Boolean(raw.evidence),
     source: raw.source,
     language: analysis?.language || 'PENDING',
