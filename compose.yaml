@@ -6,7 +6,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-sentinelnet}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
     volumes:
-      - mongo_data:/data/db
+      - ./data/mongodb:/data/db:Z
     networks:
       - sentinelnet-internal
     healthcheck:
@@ -31,7 +31,7 @@ services:
       HF_HOME: /models/huggingface
       HF_HUB_DISABLE_TELEMETRY: "1"
     volumes:
-      - hf_cache:/models/huggingface
+      - ./data/hf-cache:/models/huggingface:Z
     expose:
       - "8000"
     networks:
@@ -103,7 +103,3 @@ services:
 networks:
   sentinelnet-internal:
     driver: bridge
-
-volumes:
-  mongo_data:
-  hf_cache:
